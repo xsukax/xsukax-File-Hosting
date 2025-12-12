@@ -306,6 +306,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
             }, 4000);
         };
 
+        // Copy to clipboard function with fallback
+        const copyToClipboard = (text) => {
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text);
+            }
+            
+            // Fallback to older method
+            return new Promise((resolve, reject) => {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    if (successful) {
+                        resolve();
+                    } else {
+                        reject(new Error('Copy command failed'));
+                    }
+                } catch (err) {
+                    document.body.removeChild(textArea);
+                    reject(err);
+                }
+            });
+        };
+
         // Upload area click
         uploadArea.addEventListener('click', () => {
             fileInput.click();
@@ -392,7 +425,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
 
         // Copy URL
         copyUrlBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(downloadUrl.textContent).then(() => {
+            copyToClipboard(downloadUrl.textContent).then(() => {
                 showNotification('URL copied to clipboard');
                 copyUrlBtn.textContent = 'Copied!';
                 setTimeout(() => {
